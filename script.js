@@ -685,6 +685,9 @@ window.deleteSelected = () => {
 };
 
 window.addEventListener('keydown', (e) => {
+    // Ignore hotkeys if user is typing in an input field
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+
     if (e.key === 'r' || e.key === 'R') rotateSelected();
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
 });
