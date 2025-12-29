@@ -102,26 +102,28 @@ body {
     flex-direction: column;
     padding: 20px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    overflow-y: overlay;
+    /* Try overlay for better mobile integration */
     overflow-y: auto;
-    /* Enable scroll for all views */
     scrollbar-width: thin;
     scrollbar-color: var(--primary-color) #f0f0f0;
 }
 
-/* Global Custom Scrollbar Styling */
+/* Global Custom Scrollbar Styling - Forced Visibility */
 .sidebar::-webkit-scrollbar {
-    width: 8px;
+    width: 8px !important;
+    display: block !important;
 }
 
 .sidebar::-webkit-scrollbar-track {
-    background: #f0f0f0;
+    background: #f0f0f0 !important;
     border-radius: 10px;
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-    background-color: var(--primary-color);
+    background-color: var(--primary-color) !important;
     border-radius: 10px;
-    border: 2px solid #f0f0f0;
+    border: 2px solid #f0f0f0 !important;
 }
 
 .sidebar h2 {
@@ -281,17 +283,19 @@ canvas {
 }
 
 .modal-content::-webkit-scrollbar {
-    width: 6px;
+    width: 8px !important;
+    display: block !important;
 }
 
 .modal-content::-webkit-scrollbar-track {
-    background: #f0f0f0;
+    background: #f0f0f0 !important;
     border-radius: 10px;
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-    background-color: var(--primary-color);
+    background-color: var(--primary-color) !important;
     border-radius: 10px;
+    border: 2px solid #f0f0f0 !important;
 }
 
 .close-modal,
