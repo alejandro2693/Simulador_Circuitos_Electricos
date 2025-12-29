@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Circuitos Interactivos</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <header class="app-header">
+        <div class="header-left">
+            <h1>⚡ Simulador de Circuitos Lab</h1>
+        </div>
+        <div class="header-right">
+            <button id="btn-reset" class="btn btn-secondary">Reiniciar</button>
+            <button id="btn-screenshot" class="btn btn-icon" title="Guardar Captura (JPG)">📷</button>
+            <button id="btn-help" class="btn btn-icon">?</button>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <!-- Toolbar / Component Palette -->
+        <aside class="sidebar">
+            <h2>Componentes</h2>
+            <div class="component-palette">
+                <div class="draggable-item" data-type="battery" draggable="true">
+                    <div class="icon">🔋</div>
+                    <span>Batería</span>
+                </div>
+                <div class="draggable-item" data-type="bulb" draggable="true">
+                    <div class="icon">💡</div>
+                    <span>Bombilla</span>
+                </div>
+                <div class="draggable-item" data-type="switch" draggable="true">
+                    <div class="icon">_/_</div>
+                    <span>Interruptor</span>
+                </div>
+                <div class="draggable-item" data-type="pushbutton" draggable="true">
+                    <div class="icon">🔘</div>
+                    <span>Pulsador</span>
+                </div>
+                <div class="draggable-item" data-type="resistor" draggable="true">
+                    <div class="icon">〰️</div>
+                    <span>Resistencia</span>
+                </div>
+                <div class="draggable-item" data-type="led" draggable="true">
+                    <div class="icon">🔴</div>
+                    <span>LED</span>
+                </div>
+                <div class="draggable-item" data-type="voltmeter" draggable="true">
+                    <div class="icon">V</div>
+                    <span>Voltímetro</span>
+                </div>
+                <div class="draggable-item" data-type="ammeter" draggable="true">
+                    <div class="icon">A</div>
+                    <span>Amperímetro</span>
+                </div>
+                <!-- New Components -->
+                <div class="draggable-item" data-type="motor" draggable="true">
+                    <div class="icon">⚙️</div>
+                    <span>Motor</span>
+                </div>
+                <div class="draggable-item" data-type="spdt" draggable="true">
+                    <div class="icon">🔀</div>
+                    <span>Conmutador</span>
+                </div>
+                <div class="draggable-item" data-type="buzzer" draggable="true">
+                    <div class="icon">🔊</div>
+                    <span>Zumbador</span>
+                </div>
+                <div class="draggable-item" data-type="ldr" draggable="true">
+                    <div class="icon">☀️</div>
+                    <span>LDR</span>
+                </div>
+                <div class="draggable-item" data-type="potentiometer" draggable="true">
+                    <div class="icon">🎚️</div>
+                    <span>Potenciómetro</span>
+                </div>
+            </div>
+
+            <div class="info-panel">
+                <h3>Propiedades</h3>
+                <div id="controls-area" style="margin-bottom:10px; display:none;">
+                    <button class="btn btn-secondary"
+                        style="color:#333; border:1px solid #ccc; width:100%; margin-bottom:5px;"
+                        onclick="rotateSelected()">↻ Girar (R)</button>
+                    <button class="btn btn-secondary" style="color:red; border:1px solid #ccc; width:100%;"
+                        onclick="deleteSelected()">🗑️ Borrar (Del)</button>
+                </div>
+                <div id="properties-content">
+                    <p class="placeholder-text">Selecciona un componente para editar sus valores.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Simulation Area -->
+        <div class="canvas-wrapper">
+            <canvas id="circuit-canvas"></canvas>
+            <div id="tooltip" class="tooltip hidden"></div>
+        </div>
+    </main>
+
+    <!-- Help Modal -->
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal" style="display: block;">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>📖 Guía de Uso del Simulador</h2>
+            <div class="help-text">
+                <h3>Componentes Básicos</h3>
+                <ul>
+                    <li><strong>Arrastrar y Soltar:</strong> Selecciona componentes del menú izquierdo y arrástralos al
+                        lienzo.</li>
+                    <li><strong>Batería:</strong> Fuente de energía. Ajusta su voltaje en el panel derecho.</li>
+                    <li><strong>Mover:</strong> Arrastra cualquier componente para reorganizarlo.</li>
+                    <li><strong>Rotar:</strong> Selecciona y pulsa <code>R</code> o el botón "Girar".</li>
+                    <li><strong>Borrar:</strong> Selecciona y pulsa <code>Supr</code> o el botón "Borrar".</li>
+                </ul>
+
+                <h3>Conexiones</h3>
+                <ul>
+                    <li><strong>Crear Cable:</strong> Clic en un terminal -> Arrastra -> Suelta en otro terminal.</li>
+                    <li><strong>Ramificar (Nodos):</strong> Clic en un cable existente para crear un punto de unión.
+                    </li>
+                    <li><strong>Borrar Cable:</strong> Haz <strong>Doble Clic</strong> sobre un nodo.</li>
+                </ul>
+
+                <h3>Componentes Especiales</h3>
+                <ul>
+                    <li><strong>Interruptor:</strong> Clic para Abrir/Cerrar.</li>
+                    <li><strong>Pulsador:</strong> Funciona solo mientras lo mantienes presionado.</li>
+                    <li><strong>Conmutador (SPDT):</strong> Interruptor de 3 vías. Clic para alternar la salida
+                        (Arriba/Abajo).</li>
+                    <li><strong>LED:</strong> ⚠️ Polaridad importante. Explota si I > 20mA (aprox > 1.8V sin
+                        resistencia).</li>
+                    <li><strong>Motor:</strong> Gira más rápido cuanto más corriente circula.</li>
+                    <li><strong>Zumbador:</strong> Emite sonido/vibración cuando pasa corriente.</li>
+                    <li><strong>LDR:</strong> Resistencia varía con la luz. Usa el deslizador "Luz" en propiedades.</li>
+                    <li><strong>Potenciómetro:</strong> Resistencia variable. Usa el deslizador "Ajuste" en propiedades.
+                    </li>
+                </ul>
+                <h3>Herramientas</h3>
+                <ul>
+                    <li><strong>Captura de Pantalla (📷):</strong> Descarga una imagen de tu circuito actual.</li>
+                </ul>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button id="close-help-btn" class="btn btn-primary">Entendido, cerrar</button>
+            </div>
+        </div>
+    </div>
+    <!-- Footer -->
+    <div class="app-footer">
+        Simulador realizado por Alejandro Pérez Sánchez, haciendo uso de la herramienta Google Antigravity, pueden
+        existir errores. Contacto: alpersan@gobiernodecanarias.org
+    </div>
+
+    <script src="engine.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
