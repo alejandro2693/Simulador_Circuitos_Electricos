@@ -15,11 +15,18 @@
     padding: 0;
 }
 
+html {
+    height: 100%;
+}
+
 body {
     font-family: 'Roboto', sans-serif;
     background-color: var(--bg-color);
     color: var(--text-color);
     height: 100vh;
+    /* Fallback */
+    height: 100dvh;
+    /* Dynamic Viewport Height for Mobile */
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -95,6 +102,26 @@ body {
     flex-direction: column;
     padding: 20px;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+    overflow-y: auto;
+    /* Enable scroll for all views */
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) #f0f0f0;
+}
+
+/* Global Custom Scrollbar Styling */
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    border: 2px solid #f0f0f0;
 }
 
 .sidebar h2 {
@@ -241,8 +268,30 @@ canvas {
     border-radius: 8px;
     width: 400px;
     max-width: 90%;
+    max-height: 80vh;
+    /* Limit height to 80% of viewport */
+    overflow-y: auto;
+    /* Enable vertical scrolling */
     position: relative;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+
+    /* Custom Scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary-color) #f0f0f0;
+}
+
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 10px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background-color: var(--primary-color);
+    border-radius: 10px;
 }
 
 .close-modal,
@@ -298,7 +347,9 @@ canvas {
     .app-container {
         flex-direction: column;
         height: 100vh;
-        /* Use full viewport */
+        /* Fallback */
+        height: 100dvh;
+        /* Mobile Full Height */
     }
 
     /* Compact Header */
@@ -321,9 +372,10 @@ canvas {
     .sidebar {
         width: 100%;
         height: auto;
-        max-height: 35vh;
-        /* Allow growth up to 35% of screen */
-        padding: 10px;
+        max-height: 40vh;
+        /* Increased from 25vh */
+        padding: 5px;
+        /* Reduced padding */
         border-right: none;
         border-bottom: 1px solid var(--border-color);
 
@@ -334,22 +386,28 @@ canvas {
         flex-shrink: 0;
     }
 
-    /* Wrapped Grid for Components */
+    /* Keep wider scrollbar for touch in mobile/tablet view */
+    .sidebar::-webkit-scrollbar {
+        width: 10px;
+    }
+
     .component-palette {
         display: flex;
         flex-wrap: wrap;
         /* Wrap items to next line */
         justify-content: center;
         /* Center items */
-        gap: 10px;
-        margin-bottom: 10px;
+        gap: 5px;
+        /* Reduced gap */
+        margin-bottom: 5px;
     }
 
     .draggable-item {
-        width: 65px;
-        /* Fixed small size */
-        height: 70px;
-        padding: 5px;
+        width: 55px;
+        /* Reduced from 65px */
+        height: 60px;
+        /* Reduced from 70px */
+        padding: 2px;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -357,14 +415,17 @@ canvas {
     }
 
     .draggable-item .icon {
-        font-size: 1.5rem;
-        margin-bottom: 2px;
+        font-size: 1.2rem;
+        margin-bottom: 0px;
     }
 
+    /* Smaller icons */
     .draggable-item span {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
         text-align: center;
     }
+
+    /* Smaller text */
 
     /* Compact Info Panel */
     .info-panel {

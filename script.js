@@ -154,7 +154,7 @@ document.querySelectorAll('.draggable-item').forEach(item => {
         // 2. TouchMove on Window -> move Ghost.
         // 3. TouchEnd -> Check if over Canvas -> Drop.
 
-        e.preventDefault(); // Stop scroll/zoom for now to test direct interaction
+        // e.preventDefault(); // Allow native scroll
         activeTouchDragItem = item.dataset.type;
 
         // Create Visual Feedback (Ghost)
