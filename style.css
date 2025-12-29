@@ -290,3 +290,95 @@ canvas {
     line-height: 1.2;
     text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.8);
 }
+
+/* --- Mobile Responsiveness --- */
+@media (max-width: 768px) {
+
+    /* Stack Layout */
+    .app-container {
+        flex-direction: column;
+        height: 100vh;
+        /* Use full viewport */
+    }
+
+    /* Compact Header */
+    .app-header {
+        height: 50px;
+        padding: 0 10px;
+        flex-shrink: 0;
+    }
+
+    .app-header h1 {
+        font-size: 1rem;
+    }
+
+    .btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    /* Sidebar (Palette) at Top */
+    .sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 35vh;
+        /* Allow growth up to 35% of screen */
+        padding: 10px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        /* Scroll vertically if items don't fit */
+        flex-shrink: 0;
+    }
+
+    /* Wrapped Grid for Components */
+    .component-palette {
+        display: flex;
+        flex-wrap: wrap;
+        /* Wrap items to next line */
+        justify-content: center;
+        /* Center items */
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .draggable-item {
+        width: 65px;
+        /* Fixed small size */
+        height: 70px;
+        padding: 5px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .draggable-item .icon {
+        font-size: 1.5rem;
+        margin-bottom: 2px;
+    }
+
+    .draggable-item span {
+        font-size: 0.65rem;
+        text-align: center;
+    }
+
+    /* Compact Info Panel */
+    .info-panel {
+        margin-top: 0;
+        padding: 8px;
+        min-height: auto;
+    }
+
+    /* Canvas takes remaining space */
+    .canvas-wrapper {
+        flex: 1;
+        overflow: hidden;
+        touch-action: none;
+        /* Prevent browser gestures on canvas */
+        position: relative;
+    }
+}

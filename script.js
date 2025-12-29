@@ -122,14 +122,49 @@ function rebuildCircuit() {
 
 
 // --- Drag & Drop from Sidebar ---
+// --- Drag & Drop from Sidebar ---
+let activeTouchDragItem = null; // Store component type for touch drag
+
 document.querySelectorAll('.draggable-item').forEach(item => {
+    // Desktop Drag
     item.addEventListener('dragstart', (e) => {
         draggedItemType = item.dataset.type;
         e.dataTransfer.effectAllowed = 'copy';
     });
+
+    // Mobile Touch "Drag" (Selection)
+    item.addEventListener('touchstart', (e) => {
+        // Prevent default only if we want to stop scroll, but here we might want scroll palette.
+        // Better: Tap to select? Or Long press? 
+        // Simple approach: Touch starts "drag mode". 
+        // But palette needs to scroll. 
+        // Let's rely on a specific logic: 
+        // If user touches and HOLDS -> Drag. 
+        // Or simplified: Tap item -> Select it -> Tap canvas -> Place it.
+        // OR: Touch & Move IMMEDIATELY implies drag.
+
+        // Let's try: Touch sets a global "ready to drop" state or we simulate drag.
+        // Actually, common mobile pattern: Touch & Drag Ghost. 
+        // To simplify: We'll set 'draggedItemType' and use the Canvas TouchEnd to drop it 
+        // IF the touch started on a palette item and moved to canvas.
+        // BUT 'touchmove' will be on the ITEM, which might be outside canvas.
+
+        // Robust Mobile D&D:
+        // 1. TouchStart on Item -> create absolute positioned Ghost.
+        // 2. TouchMove on Window -> move Ghost.
+        // 3. TouchEnd -> Check if over Canvas -> Drop.
+
+        e.preventDefault(); // Stop scroll/zoom for now to test direct interaction
+        activeTouchDragItem = item.dataset.type;
+
+        // Create Visual Feedback (Ghost)
+        // ... (Optional for MVP, let's stick to logic first)
+    }, { passive: false });
 });
 
 const canvasWrapper = canvas.parentElement;
+
+// Desktop Drop
 canvasWrapper.addEventListener('dragover', (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'copy';
@@ -138,33 +173,78 @@ canvasWrapper.addEventListener('dragover', (e) => {
 canvasWrapper.addEventListener('drop', (e) => {
     e.preventDefault();
     if (draggedItemType) {
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // Add to engine list
-        engine.addComponent(draggedItemType, x, y);
-
-        // Rebuild to hook up nodes
-        rebuildCircuit();
-        draw();
-        updatePropertiesPanel(null); // Clear properties panel after dropping a new component
+        handleDrop(e.clientX, e.clientY);
     }
     draggedItemType = null;
 });
 
+// Common Drop Handler
+function handleDrop(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    // Add to engine list
+    // Use stored type (either desktop 'draggedItemType' or mobile 'activeTouchDragItem')
+    const type = draggedItemType || activeTouchDragItem;
+
+    if (type) {
+        engine.addComponent(type, x, y);
+        rebuildCircuit();
+        draw();
+        updatePropertiesPanel(null);
+    }
+}
+
+// Global Touch Move/End to handle dragging from palette to canvas
+window.addEventListener('touchmove', (e) => {
+    if (activeTouchDragItem) {
+        e.preventDefault(); // Prevent scrolling while dragging component
+        // Move ghost if we had one
+    }
+}, { passive: false });
+
+window.addEventListener('touchend', (e) => {
+    if (activeTouchDragItem) {
+        // Check if dropped on canvas
+        const touch = e.changedTouches[0];
+        const elem = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (elem === canvas || canvas.contains(elem)) {
+            handleDrop(touch.clientX, touch.clientY);
+        }
+        activeTouchDragItem = null;
+    }
+});
+
 // --- Mouse Interaction ---
 
+
+
 canvas.addEventListener('mousedown', (e) => {
+    handlePointerDown(e.clientX, e.clientY);
+});
+
+// Touch Support: Map Touch -> Pointer Logic
+canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+        e.preventDefault(); // Prevent scrolling
+        const touch = e.touches[0];
+        handlePointerDown(touch.clientX, touch.clientY);
+    }
+}, { passive: false });
+
+function handlePointerDown(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     // 1. Check for Terminal Click (Start Wire)
     const terminal = getTerminalAt(x, y);
     if (terminal) {
         isDrawingWire = true;
         wireStartTerminal = terminal;
+        // Set initial mouseX/Y for immediate feedback
+        mouseX = x; mouseY = y;
         return;
     }
 
@@ -222,12 +302,19 @@ canvas.addEventListener('mousedown', (e) => {
     selectedComponent = null;
     updatePropertiesPanel(null);
     draw();
-});
+}
+
 
 canvas.addEventListener('dblclick', (e) => {
+    // Keep double click for delete wire on desktop
+    handleDoubleClick(e.clientX, e.clientY);
+});
+// Simple pseudo-double-tap for mobile could be added, but 'Del' button exists.
+
+function handleDoubleClick(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
 
     // Delete Wire on Double Click
     const wireHit = getWireAt(x, y);
@@ -240,7 +327,7 @@ canvas.addEventListener('dblclick', (e) => {
         rebuildCircuit();
         draw();
     }
-});
+}
 
 // --- Helper for Cleanup ---
 function removeOrphanedJoints() {
@@ -260,9 +347,21 @@ function removeOrphanedJoints() {
 }
 
 canvas.addEventListener('mousemove', (e) => {
+    handlePointerMove(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        handlePointerMove(touch.clientX, touch.clientY);
+    }
+}, { passive: false });
+
+function handlePointerMove(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
-    mouseX = e.clientX - rect.left;
-    mouseY = e.clientY - rect.top;
+    mouseX = clientX - rect.left;
+    mouseY = clientY - rect.top;
 
     // Cursor
     const terminal = getTerminalAt(mouseX, mouseY);
@@ -277,10 +376,25 @@ canvas.addEventListener('mousemove', (e) => {
         selectedComponent.x = mouseX;
         selectedComponent.y = mouseY;
     }
+    // Repaint on move usually needed for dragging or wires
     draw();
-});
+}
 
 canvas.addEventListener('mouseup', (e) => {
+    handlePointerUp(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('touchend', (e) => {
+    // For touchend, changedTouches has the info
+    if (e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        handlePointerUp(touch.clientX, touch.clientY);
+    }
+    // Prevent default mouse emulation
+    e.preventDefault();
+}, { passive: false });
+
+function handlePointerUp(clientX, clientY) {
     // Pushbutton Release
     const pusbuttons = engine.components.filter(c => c.type === 'pushbutton');
     let needsSolve = false;
@@ -293,7 +407,14 @@ canvas.addEventListener('mouseup', (e) => {
     });
 
     if (isDrawingWire && wireStartTerminal) {
-        const terminal = getTerminalAt(mouseX, mouseY);
+        // Need to update MouseX/Y first?
+        // handlePointerMove updates global mouseX/Y, let's assume valid from last move.
+        // Or re-calc from clientX
+        const rect = canvas.getBoundingClientRect();
+        const mx = clientX - rect.left;
+        const my = clientY - rect.top;
+
+        const terminal = getTerminalAt(mx, my);
         if (terminal) {
             const isSameTerm = (terminal.component === wireStartTerminal.component && terminal.index === wireStartTerminal.index);
             if (!isSameTerm) {
@@ -319,7 +440,7 @@ canvas.addEventListener('mouseup', (e) => {
     isDrawingWire = false;
     wireStartTerminal = null;
     draw();
-});
+}
 
 // --- Mouse Helpers ---
 
