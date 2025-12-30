@@ -13,6 +13,7 @@ let visualWires = []; // Stores { startComp, startTerm, endComp, endTerm }
 let isDragging = false;
 let draggedItemType = null;
 let selectedComponent = null;
+let selectedWire = null; // { wire, index }
 
 // Wire Drawing State
 let isDrawingWire = false;
@@ -300,28 +301,19 @@ function handlePointerDown(clientX, clientY) {
         return;
     }
 
-    // 3. Check for Wire Click (Split Joint)
-    const wireHit = getWireAt(x, y);
+    // 3. Check for Wire Click (Select)
+    const wireHit = getWireAt(x, y, 15); // Large threshold for selection
     if (wireHit) {
-        // Split logic
-        const joint = engine.addComponent('joint', x, y);
-
-        // Remove old wire, add 2 new
-        const oldW = wireHit.wire;
-
-        visualWires.splice(wireHit.index, 1);
-        visualWires.push({ startComp: oldW.startComp, startTerm: oldW.startTerm, endComp: joint, endTerm: 0 });
-        visualWires.push({ startComp: joint, startTerm: 1, endComp: oldW.endComp, endTerm: oldW.endTerm });
-
-        rebuildCircuit();
-
-        selectedComponent = joint;
-        isDragging = true;
+        selectedComponent = null;
+        selectedWire = wireHit;
+        updatePropertiesPanel({ type: 'wire', wire: wireHit.wire, index: wireHit.index, x: x, y: y });
+        draw();
         return;
     }
 
     // 4. Click Empty
     selectedComponent = null;
+    selectedWire = null;
     updatePropertiesPanel(null);
     draw();
 }
@@ -338,7 +330,7 @@ function handleDoubleClick(clientX, clientY) {
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
-    // 1. Delete Joint on Double Click (and its wires)
+    // Delete Joint on Double Click (and its wires)
     const clickedComp = getComponentAt(x, y);
     if (clickedComp && clickedComp.type === 'joint') {
         engine.components = engine.components.filter(c => c !== clickedComp);
@@ -346,15 +338,6 @@ function handleDoubleClick(clientX, clientY) {
         rebuildCircuit();
         draw();
         return;
-    }
-
-    // 2. Delete Wire on Double Click
-    const wireHit = getWireAt(x, y, 15); // Increased threshold for deletion
-    if (wireHit) {
-        visualWires.splice(wireHit.index, 1);
-        removeOrphanedJoints();
-        rebuildCircuit();
-        draw();
     }
 }
 
@@ -574,6 +557,50 @@ function updatePropertiesPanel(comp) {
 
     let html = `<h3>${comp.type.toUpperCase()}</h3>`;
 
+    if (comp.type === 'wire') {
+        html = `<h3>CABLE</h3>`;
+        html += `<p style="font-size:0.8rem; margin-bottom:10px; color:#666;">Conecta ${comp.wire.startComp.type} con ${comp.wire.endComp.type}</p>`;
+        html += `<div style="margin-top:10px;">
+                    <button id="btn-split-wire" style="margin-right:5px; background:#2196F3; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Dividir (Añadir Nodo)</button>
+                    <button id="btn-delete-wire" style="background:#f44336; color:white; border:none; padding:8px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">Eliminar</button>
+                  </div>`;
+        panel.innerHTML = html;
+
+        document.getElementById('btn-split-wire').onclick = () => {
+            const x = comp.x;
+            const y = comp.y;
+            const joint = engine.addComponent('joint', x, y);
+            const oldW = comp.wire;
+
+            // Remove old wire at index
+            // Note: if wires changed meanwhile, finding by reference is safer
+            const idx = visualWires.indexOf(oldW);
+            if (idx !== -1) {
+                visualWires.splice(idx, 1);
+                visualWires.push({ startComp: oldW.startComp, startTerm: oldW.startTerm, endComp: joint, endTerm: 0 });
+                visualWires.push({ startComp: joint, startTerm: 1, endComp: oldW.endComp, endTerm: oldW.endTerm });
+                rebuildCircuit();
+                selectedComponent = joint;
+                selectedWire = null;
+                updatePropertiesPanel(joint);
+                draw();
+            }
+        };
+
+        document.getElementById('btn-delete-wire').onclick = () => {
+            const idx = visualWires.indexOf(comp.wire);
+            if (idx !== -1) {
+                visualWires.splice(idx, 1);
+                removeOrphanedJoints();
+                rebuildCircuit();
+                selectedWire = null;
+                updatePropertiesPanel(null);
+                draw();
+            }
+        };
+        return;
+    }
+
     if (comp.type === 'battery') {
         html += `<label>Voltaje (V): <input type="number" id="prop-voltage" value="${comp.voltage}" step="0.1"></label>`;
     } else if (comp.type === 'resistor') {
@@ -672,7 +699,7 @@ function updatePropertiesPanel(comp) {
 
 function getComponentAt(x, y) {
     return engine.components.find(c => {
-        if (c.type === 'joint') return dist(x, y, c.x, c.y) < 10;
+        if (c.type === 'joint') return dist(x, y, c.x, c.y) < 25; // Increased from 10
         const r = c.rotation || 0;
         const w = (r % 2 === 0) ? 40 : 25;
         const h = (r % 2 === 0) ? 25 : 40;
@@ -710,6 +737,16 @@ window.deleteSelected = () => {
         removeOrphanedJoints();
         rebuildCircuit();
         draw();
+    } else if (selectedWire) {
+        const idx = visualWires.indexOf(selectedWire.wire);
+        if (idx !== -1) {
+            visualWires.splice(idx, 1);
+            removeOrphanedJoints();
+            rebuildCircuit();
+            selectedWire = null;
+            updatePropertiesPanel(null);
+            draw();
+        }
     }
 };
 
@@ -741,7 +778,7 @@ function draw() {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    visualWires.forEach(wire => {
+    visualWires.forEach((wire, idx) => {
         const startTerms = getTransformedTerminals(wire.startComp);
         const endTerms = getTransformedTerminals(wire.endComp);
 
@@ -755,8 +792,15 @@ function draw() {
         let start = getTermPos(startTerms, wire.startTerm);
         let end = getTermPos(endTerms, wire.endTerm);
 
-        ctx.strokeStyle = '#555';
-        ctx.lineWidth = 3;
+        // Highlight selected wire
+        if (selectedWire && selectedWire.wire === wire) {
+            ctx.strokeStyle = '#FF9800'; // Orange
+            ctx.lineWidth = 6;
+        } else {
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 3;
+        }
+
         ctx.beginPath();
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
@@ -859,6 +903,12 @@ function drawComponentBody(c) {
     if (c.type === 'joint') {
         ctx.fillStyle = isSel ? '#2196F3' : '#333';
         ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+
+        // Draw Handle Icon (Hand)
+        ctx.font = '16px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🖐️', 0, -15);
         return;
     }
 
