@@ -235,9 +235,9 @@ canvas.addEventListener('touchstart', (e) => {
         e.preventDefault(); // Prevent scrolling
         const touch = e.touches[0];
 
-        const currentTime = new Date().getTime();
-        const tapThreshold = 300; // ms
-        const moveThreshold = 20; // px
+        const currentTime = performance.now();
+        const tapThreshold = 500; // ms (increased for iPhone)
+        const moveThreshold = 30; // px (increased for fingers)
 
         const dx = Math.abs(touch.clientX - lastTapX);
         const dy = Math.abs(touch.clientY - lastTapY);
@@ -245,7 +245,6 @@ canvas.addEventListener('touchstart', (e) => {
         if (currentTime - lastTapTime < tapThreshold && dx < moveThreshold && dy < moveThreshold) {
             // Double Tap Detected
             handleDoubleClick(touch.clientX, touch.clientY);
-            // Reset to prevent triple-tap being another double-tap immediately
             lastTapTime = 0;
         } else {
             handlePointerDown(touch.clientX, touch.clientY);
@@ -339,14 +338,21 @@ function handleDoubleClick(clientX, clientY) {
     const x = clientX - rect.left;
     const y = clientY - rect.top;
 
-    // Delete Wire on Double Click
-    const wireHit = getWireAt(x, y);
+    // 1. Delete Joint on Double Click (and its wires)
+    const clickedComp = getComponentAt(x, y);
+    if (clickedComp && clickedComp.type === 'joint') {
+        engine.components = engine.components.filter(c => c !== clickedComp);
+        visualWires = visualWires.filter(w => w.startComp !== clickedComp && w.endComp !== clickedComp);
+        rebuildCircuit();
+        draw();
+        return;
+    }
+
+    // 2. Delete Wire on Double Click
+    const wireHit = getWireAt(x, y, 15); // Increased threshold for deletion
     if (wireHit) {
         visualWires.splice(wireHit.index, 1);
-
-        // Cleanup isolated joints
         removeOrphanedJoints();
-
         rebuildCircuit();
         draw();
     }
@@ -467,7 +473,7 @@ function handlePointerUp(clientX, clientY) {
 
 // --- Mouse Helpers ---
 
-function getWireAt(mx, my) {
+function getWireAt(mx, my, threshold = 8) {
     for (let i = 0; i < visualWires.length; i++) {
         const w = visualWires[i];
         const s = getTransformedTerminals(w.startComp);
@@ -476,7 +482,7 @@ function getWireAt(mx, my) {
         const p2 = (w.endTerm === 0) ? e.t0 : e.t1;
 
         const d = distToSegment(mx, my, p1.x, p1.y, p2.x, p2.y);
-        if (d < 8) return { wire: w, index: i };
+        if (d < threshold) return { wire: w, index: i };
     }
     return null;
 }
