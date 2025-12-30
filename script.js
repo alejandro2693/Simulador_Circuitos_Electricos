@@ -22,6 +22,11 @@ let mouseX = 0, mouseY = 0;
 // Animation State
 let time = 0;
 
+// Touch Double-Tap Tracking
+let lastTapTime = 0;
+let lastTapX = 0;
+let lastTapY = 0;
+
 // --- Initialization ---
 function resizeCanvas() {
     const parent = canvas.parentElement;
@@ -229,7 +234,25 @@ canvas.addEventListener('touchstart', (e) => {
     if (e.touches.length === 1) {
         e.preventDefault(); // Prevent scrolling
         const touch = e.touches[0];
-        handlePointerDown(touch.clientX, touch.clientY);
+
+        const currentTime = new Date().getTime();
+        const tapThreshold = 300; // ms
+        const moveThreshold = 20; // px
+
+        const dx = Math.abs(touch.clientX - lastTapX);
+        const dy = Math.abs(touch.clientY - lastTapY);
+
+        if (currentTime - lastTapTime < tapThreshold && dx < moveThreshold && dy < moveThreshold) {
+            // Double Tap Detected
+            handleDoubleClick(touch.clientX, touch.clientY);
+            // Reset to prevent triple-tap being another double-tap immediately
+            lastTapTime = 0;
+        } else {
+            handlePointerDown(touch.clientX, touch.clientY);
+            lastTapTime = currentTime;
+            lastTapX = touch.clientX;
+            lastTapY = touch.clientY;
+        }
     }
 }, { passive: false });
 
